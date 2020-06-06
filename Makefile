@@ -1,2 +1,2 @@
 build:
-	go build -o ghpr ./cmd
+	go build -o ghpr .
