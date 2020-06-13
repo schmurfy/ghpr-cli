@@ -123,9 +123,10 @@ func (st *commentsCreate) Run(args []string) int {
 type commentsUpdate struct {
 	*comments
 
-	body              string
-	commentID         int64
-	updateLastComment bool
+	body               string
+	commentID          int64
+	updateLastComment  bool
+	createIfNoComments bool
 }
 
 func (st *commentsUpdate) Help() string {
@@ -136,6 +137,7 @@ func (st *commentsUpdate) flags() *pflag.FlagSet {
 	fs := st.comments.flags()
 	fs.StringVarP(&st.body, "body", "", "", " comment body")
 	fs.BoolVarP(&st.updateLastComment, "last", "", false, "update last of my comment")
+	fs.BoolVarP(&st.createIfNoComments, "create", "", false, "create a comment if none exist")
 	fs.Int64VarP(&st.commentID, "id", "", -1, "comment id")
 	setRequiredFlags(fs, "body")
 
@@ -148,6 +150,10 @@ func (st *commentsUpdate) Run(args []string) int {
 
 	body := getBody(st.body)
 	commentID := st.commentID
+
+	comment := &github.IssueComment{
+		Body: &body,
+	}
 
 	if st.updateLastComment {
 		// find last comment id
@@ -168,13 +174,21 @@ func (st *commentsUpdate) Run(args []string) int {
 			}
 		}
 
+		// we found no existing comment
 		if commentID == -1 {
-			panic("no comment found for user")
-		}
-	}
+			if !st.createIfNoComments {
+				panic("no comment found for user")
+			}
 
-	comment := &github.IssueComment{
-		Body: &body,
+			// create new comment
+			comment, _, err := cl.Issues.CreateComment(ctx, owner, repository, st.issueNumber, comment)
+			if err != nil {
+				panic(err)
+			}
+
+			printJsonComment(comment)
+			return 0
+		}
 	}
 
 	comment, _, err := cl.Issues.EditComment(ctx, owner, repository, commentID, comment)
