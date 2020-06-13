@@ -12,6 +12,8 @@ import (
 	"github.com/spf13/pflag"
 )
 
+var Version = "development"
+
 var cfgFile string
 var owner string
 var repository string
@@ -130,7 +132,7 @@ func addGlobalFlags(fs *pflag.FlagSet) {
 }
 
 func main() {
-	c := cli.NewCLI("ghpr", "1.0.0")
+	c := cli.NewCLI("ghpr", Version)
 	c.Args = os.Args[1:]
 
 	ctx, _ = context.WithTimeout(context.Background(), 5*time.Second)
